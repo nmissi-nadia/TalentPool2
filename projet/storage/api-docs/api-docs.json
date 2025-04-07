@@ -1,0 +1,429 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "TalentPool API",
+        "description": "API pour la gestion des annonces et des candidatures",
+        "contact": {
+            "email": "contact@talentpool.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/annonces": {
+            "get": {
+                "tags": [
+                    "Annonces"
+                ],
+                "summary": "Récupérer toutes les annonces",
+                "description": "Retourne la liste de toutes les annonces",
+                "operationId": "getAnnonces",
+                "responses": {
+                    "200": {
+                        "description": "Succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "titre": {
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "statut": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ouverte",
+                                                    "fermée"
+                                                ]
+                                            },
+                                            "recruteur_id": {
+                                                "type": "integer"
+                                            },
+                                            "created_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            },
+                                            "updated_at": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Annonces"
+                ],
+                "summary": "Créer une nouvelle annonce",
+                "description": "Crée une nouvelle annonce",
+                "operationId": "createAnnonce",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Annonce"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Annonce créée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Annonce"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Les données envoyées ne sont pas valides"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/annonces/{id}": {
+            "put": {
+                "tags": [
+                    "Annonces"
+                ],
+                "summary": "Mettre à jour une annonce",
+                "description": "Met à jour une annonce existante",
+                "operationId": "updateAnnonce",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de l'annonce",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Annonce"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Annonce mise à jour avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Annonce"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Annonce non trouvée"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Annonces"
+                ],
+                "summary": "Supprimer une annonce",
+                "description": "Supprime une annonce existante",
+                "operationId": "deleteAnnonce",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de l'annonce",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Annonce supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Annonce non trouvée"
+                    }
+                }
+            }
+        },
+        "/annonces/stats": {
+            "get": {
+                "tags": [
+                    "Annonces"
+                ],
+                "summary": "Récupérer les statistiques des annonces",
+                "description": "Retourne les statistiques des annonces",
+                "operationId": "getAnnonceStats",
+                "responses": {
+                    "200": {
+                        "description": "Succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer"
+                                        },
+                                        "ouverte": {
+                                            "type": "integer"
+                                        },
+                                        "fermee": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/candidatures": {
+            "get": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Liste des candidatures",
+                "operationId": "30a9056e08770df884c1bc7e730ba381",
+                "responses": {
+                    "200": {
+                        "description": "Liste des candidatures"
+                    }
+                }
+            }
+        },
+        "/api/candidatures/{id}": {
+            "put": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Mise à jour d'une candidature",
+                "operationId": "1f1143cbd26b67f3baa0c44e38a0afc2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la candidature",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidature mise à jour"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Suppression d'une candidature",
+                "operationId": "1fff35c5111a9e820392c0d65c9d4b44",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la candidature",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidature supprimée"
+                    }
+                }
+            }
+        },
+        "/api/candidatures/stats": {
+            "get": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Statistiques des candidatures",
+                "operationId": "779bf190a0b8721baa49f7e40c916722",
+                "responses": {
+                    "200": {
+                        "description": "Statistiques des candidatures"
+                    }
+                }
+            }
+        },
+        "/api/candidatures/{annonceId}": {
+            "get": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Récupérer les candidatures par annonce",
+                "operationId": "d0aad9fa43a1bf0f4a275c0c3720941b",
+                "parameters": [
+                    {
+                        "name": "annonceId",
+                        "in": "path",
+                        "description": "ID de l'annonce",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidatures récupérées"
+                    }
+                }
+            }
+        },
+        "/api/candidatures/{candidatId}": {
+            "get": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Récupérer les candidatures par candidat",
+                "operationId": "6143fc3093fa3b4736b9a018535d1004",
+                "parameters": [
+                    {
+                        "name": "candidatId",
+                        "in": "path",
+                        "description": "ID du candidat",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidatures récupérées"
+                    }
+                }
+            }
+        },
+        "/api/candidatures/{id}/status": {
+            "put": {
+                "tags": [
+                    "Candidatures"
+                ],
+                "summary": "Mise à jour du statut d'une candidature",
+                "operationId": "465e9f1c3bdf2bd9bb5446922565f668",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la candidature",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statut de la candidature mis à jour"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Annonce": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "titre": {
+                        "type": "string",
+                        "example": "Développeur PHP"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Recherche développeur PHP expérimenté"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "ouverte",
+                            "fermée"
+                        ],
+                        "example": "ouverte"
+                    },
+                    "recruteur_id": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-24T10:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-03-25T15:00:00Z"
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Annonces",
+            "description": "Annonces"
+        },
+        {
+            "name": "Candidatures",
+            "description": "Candidatures"
+        }
+    ]
+}
