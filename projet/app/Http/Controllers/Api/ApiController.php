@@ -53,19 +53,23 @@ class ApiController extends Controller
         ]);
 
         if(!empty($token)){
+            // Récupérer l'utilisateur connecté
+            $user = auth()->user();
+            
+            // Envoi de l'email de notification (si nécessaire)
+            try {
+                // Décommentez ces lignes si vous souhaitez envoyer un email de notification
+                // Mail::to($user->email)->send(new LoginNotification($user, request()->ip()));
+            } catch (\Exception $e) {
+                // En cas d'erreur d'envoi, on log l'erreur mais on ne bloque pas la connexion
+                // Log::error('Erreur lors de l\'envoi de l\'email de notification : ' . $e->getMessage());
+            }
 
             return response()->json([
                 "status" => true,
                 "message" => "Connexion reussie",
                 "token" => $token
             ]);
-        }
-        // Envoi de l'email de notification
-        try {
-            Mail::to($user->email)->send(new LoginNotification($user, request()->ip()));
-        } catch (\Exception $e) {
-            // En cas d'erreur d'envoi, on log l'erreur mais on ne bloque pas la connexion
-            Log::error('Erreur lors de l\'envoi de l\'email de notification : ' . $e->getMessage());
         }
 
         return response()->json([
@@ -87,13 +91,20 @@ class ApiController extends Controller
      //Refresh Token API (GET)
      public function refreshToken()
      {
-        $newToken = auth()->refresh();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Nouveau access token",
-            "token" => $newToken
-        ]);
+        try {
+            $newToken = JWTAuth::parseToken()->refresh();
+            
+            return response()->json([
+                "status" => true,
+                "message" => "Nouveau access token",
+                "token" => $newToken
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Erreur lors du rafraîchissement du token"
+            ], 401);
+        }
      }
     //  Logout Api (GET)
     public function logout()

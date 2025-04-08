@@ -230,31 +230,50 @@
             throw new Error('Failed to load annonce details');
         })
         .then(data => {
+            console.log('API Response (annonce details):', data);
+            
+            // Vérifier si les données sont valides
+            if (!data || typeof data !== 'object') {
+                throw new Error('Format de données incorrect');
+            }
+            
             // Afficher les détails de l'annonce
-            document.getElementById('annonceTitle').textContent = data.titre;
-            document.getElementById('annonceDescription').textContent = data.description;
+            document.getElementById('annonceTitle').textContent = data.titre || 'Titre non disponible';
+            document.getElementById('annonceDescription').textContent = data.description || 'Description non disponible';
             
             // Afficher le statut avec la couleur appropriée
             const statusBadge = document.getElementById('annonceStatus');
-            statusBadge.textContent = data.statut;
-            statusBadge.className = `badge ${data.statut === 'ouverte' ? 'bg-success' : 'bg-secondary'}`;
+            const statut = data.statut || 'inconnue';
+            statusBadge.textContent = statut;
+            statusBadge.className = `badge ${statut === 'ouverte' ? 'bg-success' : 'bg-secondary'}`;
             
             // Afficher la date de publication
-            const date = new Date(data.created_at);
-            document.getElementById('annonceDate').textContent = date.toLocaleDateString('fr-FR');
+            let dateText = 'Date non disponible';
+            if (data.created_at) {
+                try {
+                    const date = new Date(data.created_at);
+                    dateText = date.toLocaleDateString('fr-FR');
+                } catch (e) {
+                    console.error('Error formatting date:', e);
+                }
+            }
+            document.getElementById('annonceDate').textContent = dateText;
             
             // Afficher le nom du recruteur (si disponible)
             if (data.recruteur && data.recruteur.name) {
                 document.getElementById('annonceRecruteur').textContent = data.recruteur.name;
             } else {
                 document.getElementById('annonceRecruteur').textContent = 'Recruteur';
+                console.log('Recruteur information missing or incomplete:', data.recruteur);
             }
             
             // Désactiver le bouton "Postuler" si l'annonce est fermée
-            if (data.statut === 'fermée') {
+            if (statut === 'fermée') {
                 const postulerBtn = document.getElementById('postulerBtn');
-                postulerBtn.disabled = true;
-                postulerBtn.textContent = 'Annonce fermée';
+                if (postulerBtn) {
+                    postulerBtn.disabled = true;
+                    postulerBtn.textContent = 'Annonce fermée';
+                }
             }
         })
         .catch(error => {

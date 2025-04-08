@@ -25,6 +25,10 @@ Route::post("login", [ApiController::class, "login"]);
 Route::post("password/reset", [ApiController::class, "resetPassword"]);
 // Déconnexion avec middleware auth:api
 Route::post("logout", [ApiController::class, "logout"])->middleware("auth:api");
+// Profil utilisateur
+Route::get("profile", [ApiController::class, "profile"])->middleware("auth:api");
+// Rafraîchissement du token
+Route::get("refresh-token", [ApiController::class, "refreshToken"])->middleware("auth:api");
 
 // Gestion des Annonces pass
 Route::group([
@@ -55,9 +59,9 @@ Route::group([
     Route::get("candidatures/annonce/{annonceId}", [CandidatureController::class, "getByAnnonce"]); // Récupérer les candidatures par annonce
 });
 
-// Récupérer les annonces pour les candidats
+// Récupérer les annonces (accessible aux candidats et recruteurs)
 Route::group([
-    "middleware" => ["auth:api", "check.role:candidat"]
+    "middleware" => ["auth:api", "check.role:candidat,recruteur"]
 ], function() {
     Route::get("annonces", [AnnonceController::class, "index"]); 
     Route::get("annonces/{id}", [AnnonceController::class, "show"]); 

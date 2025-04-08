@@ -36,6 +36,14 @@ Route::get('/annonces', function () {
     return view('annonces.index');
 });
 
+Route::get('/annonces/create', function () {
+    return view('annonces.create');
+});
+
+Route::get('/annonces/edit/{id}', function ($id) {
+    return view('annonces.create');
+});
+
 Route::get('/annonces/{id}', function ($id) {
     return view('annonces.show');
 });

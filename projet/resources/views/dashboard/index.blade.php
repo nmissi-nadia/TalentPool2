@@ -37,9 +37,17 @@
             if (response.ok) {
                 return response.json();
             }
+            if (response.status === 401) {
+                // Token expired, try to refresh it
+                return refreshToken();
+            }
             throw new Error('Failed to get user profile');
         })
         .then(data => {
+            if (!data || !data.data || !data.data.role) {
+                throw new Error('Invalid user data');
+            }
+            
             const role = data.data.role;
             
             // Rediriger vers le tableau de bord approprié selon le rôle
@@ -71,6 +79,47 @@
                 </div>
                 <a href="/login" class="btn btn-primary">Se connecter</a>
             `;
+        });
+    }
+    
+    // Refresh token
+    function refreshToken() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return Promise.reject('No token found');
+        }
+        
+        return fetch(`${API_BASE_URL}/refresh-token`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Failed to refresh token');
+        })
+        .then(data => {
+            if (data.status && data.token) {
+                // Save new token
+                localStorage.setItem('token', data.token);
+                
+                // Retry getting user profile
+                return fetch(`${API_BASE_URL}/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${data.token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to get user profile after token refresh');
+                });
+            } else {
+                throw new Error('Invalid token refresh response');
+            }
         });
     }
     

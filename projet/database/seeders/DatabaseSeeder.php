@@ -12,11 +12,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // Create admin user
+        \App\Models\User::factory()->create([
+            'name' => 'Admin',
+            'email' => 'admin@talentpool.com',
+            'role' => 'admin',
+        ]);
+        
+        // Create recruiter users
+        $recruteurs = \App\Models\User::factory(3)->create([
+            'role' => 'recruteur',
+        ]);
+        
+        // Create candidate users
+        \App\Models\User::factory(5)->create([
+            'role' => 'candidat',
+        ]);
+        
+        // Create job listings for each recruiter
+        foreach ($recruteurs as $recruteur) {
+            \App\Models\Annonce::factory(3)->create([
+                'recruteur_id' => $recruteur->id,
+            ]);
+        }
     }
 }

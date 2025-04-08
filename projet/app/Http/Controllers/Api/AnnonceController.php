@@ -249,5 +249,50 @@ class AnnonceController extends Controller
         return response()->json($this->service->getByStatut($statut), 200);
     }
 
+    /**
+     * @OA\Get(
+     *      path="/annonces/{id}",
+     *      operationId="getAnnonceById",
+     *      tags={"Annonces"},
+     *      summary="Récupérer une annonce par son ID",
+     *      description="Retourne les détails d'une annonce spécifique",
+     *      @OA\Parameter(
+     *          name="id",
+     *          in="path",
+     *          required=true,
+     *          description="ID de l'annonce",
+     *          @OA\Schema(
+     *              type="integer"
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès",
+     *          @OA\JsonContent(ref="#/components/schemas/Annonce")
+     *      ),
+     *      @OA\Response(
+     *          response=404,
+     *          description="Annonce non trouvée"
+     *      )
+     * )
+     */
+    public function show(int $id)
+    {
+        try {
+            $annonce = $this->service->get($id);
+            
+            if (!$annonce) {
+                return response()->json(['error' => 'Annonce non trouvée'], 404);
+            }
+            
+            // Charger la relation recruteur
+            $annonce->load('recruteur');
+            
+            return response()->json($annonce, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
    
 }

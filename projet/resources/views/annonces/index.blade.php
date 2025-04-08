@@ -49,49 +49,7 @@
     </div>
 </div>
 
-<!-- Modal pour créer/modifier une annonce -->
-<div class="modal fade" id="annonceModal" tabindex="-1" aria-labelledby="annonceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="annonceModalLabel">Créer une annonce</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="annonceForm">
-                    <input type="hidden" id="annonceId">
-                    
-                    <div class="mb-3">
-                        <label for="titre" class="form-label">Titre</label>
-                        <input type="text" class="form-control" id="titre" required>
-                        <div class="invalid-feedback" id="titreError"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" rows="5" required></textarea>
-                        <div class="invalid-feedback" id="descriptionError"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="statut" class="form-label">Statut</label>
-                        <select class="form-select" id="statut" required>
-                            <option value="ouverte">Ouverte</option>
-                            <option value="fermée">Fermée</option>
-                        </select>
-                        <div class="invalid-feedback" id="statutError"></div>
-                    </div>
-                    
-                    <div class="alert alert-danger d-none" id="formError"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary" id="saveAnnonceBtn">Enregistrer</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Le modal a été supprimé car nous utilisons maintenant des pages séparées pour créer et modifier les annonces -->
 @endsection
 
 @section('scripts')
@@ -146,7 +104,32 @@
             throw new Error('Failed to load annonces');
         })
         .then(data => {
+            console.log('API Response:', data);
             annonces = data;
+            
+            if (Array.isArray(data) && data.length === 0) {
+                document.getElementById('annoncesList').innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            Aucune annonce n'est disponible pour le moment.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!Array.isArray(data)) {
+                console.error('Expected an array of annonces, but got:', typeof data);
+                document.getElementById('annoncesList').innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            Format de données incorrect. Veuillez contacter l'administrateur.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
             displayAnnonces();
         })
         .catch(error => {
@@ -209,7 +192,7 @@
                         <div class="d-flex justify-content-between">
                             <a href="/annonces/${annonce.id}" class="btn btn-primary btn-sm">Voir détails</a>
                             <div class="btn-group ${userRole === 'recruteur' ? '' : 'd-none'}">
-                                <button type="button" class="btn btn-outline-secondary btn-sm edit-btn" data-id="${annonce.id}">Modifier</button>
+                                <a href="/annonces/edit/${annonce.id}" class="btn btn-outline-secondary btn-sm">Modifier</a>
                                 <button type="button" class="btn btn-outline-danger btn-sm delete-btn" data-id="${annonce.id}">Supprimer</button>
                             </div>
                         </div>
@@ -220,13 +203,7 @@
             annoncesList.appendChild(annonceCard);
         });
         
-        // Ajouter les événements pour les boutons d'édition et de suppression
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                editAnnonce(id);
-            });
-        });
+        // Ajouter les événements pour les boutons de suppression
         
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -250,32 +227,9 @@
     
     // Créer une annonce
     document.getElementById('createAnnonceBtn').addEventListener('click', function() {
-        // Réinitialiser le formulaire
-        document.getElementById('annonceForm').reset();
-        document.getElementById('annonceId').value = '';
-        document.getElementById('annonceModalLabel').textContent = 'Créer une annonce';
-        
-        // Afficher le modal
-        const modal = new bootstrap.Modal(document.getElementById('annonceModal'));
-        modal.show();
+        window.location.href = '/annonces/create';
     });
     
-    // Éditer une annonce
-    function editAnnonce(id) {
-        const annonce = annonces.find(a => a.id == id);
-        
-        if (annonce) {
-            document.getElementById('annonceId').value = annonce.id;
-            document.getElementById('titre').value = annonce.titre;
-            document.getElementById('description').value = annonce.description;
-            document.getElementById('statut').value = annonce.statut;
-            
-            document.getElementById('annonceModalLabel').textContent = 'Modifier une annonce';
-            
-            const modal = new bootstrap.Modal(document.getElementById('annonceModal'));
-            modal.show();
-        }
-    }
     
     // Supprimer une annonce
     function deleteAnnonce(id) {
@@ -305,82 +259,6 @@
         }
     }
     
-    // Enregistrer une annonce (création ou modification)
-    document.getElementById('saveAnnonceBtn').addEventListener('click', function() {
-        // Réinitialiser les erreurs
-        document.getElementById('titreError').textContent = '';
-        document.getElementById('descriptionError').textContent = '';
-        document.getElementById('statutError').textContent = '';
-        document.getElementById('formError').classList.add('d-none');
-        
-        // Récupérer les données du formulaire
-        const id = document.getElementById('annonceId').value;
-        const titre = document.getElementById('titre').value;
-        const description = document.getElementById('description').value;
-        const statut = document.getElementById('statut').value;
-        
-        // Valider le formulaire
-        let hasError = false;
-        
-        if (!titre) {
-            document.getElementById('titreError').textContent = 'Le titre est requis';
-            document.getElementById('titre').classList.add('is-invalid');
-            hasError = true;
-        }
-        
-        if (!description) {
-            document.getElementById('descriptionError').textContent = 'La description est requise';
-            document.getElementById('description').classList.add('is-invalid');
-            hasError = true;
-        }
-        
-        if (!statut) {
-            document.getElementById('statutError').textContent = 'Le statut est requis';
-            document.getElementById('statut').classList.add('is-invalid');
-            hasError = true;
-        }
-        
-        if (hasError) {
-            return;
-        }
-        
-        const token = localStorage.getItem('token');
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_BASE_URL}/annonces/${id}` : `${API_BASE_URL}/annonces`;
-        
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ titre, description, statut })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                document.getElementById('formError').textContent = data.error;
-                document.getElementById('formError').classList.remove('d-none');
-                return;
-            }
-            
-            // Fermer le modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('annonceModal'));
-            modal.hide();
-            
-            // Afficher un message de succès
-            showNotification(id ? 'Annonce modifiée avec succès' : 'Annonce créée avec succès');
-            
-            // Recharger les annonces
-            loadAnnonces();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('formError').textContent = 'Une erreur est survenue. Veuillez réessayer.';
-            document.getElementById('formError').classList.remove('d-none');
-        });
-    });
     
     // Initialisation
     document.addEventListener('DOMContentLoaded', function() {
