@@ -1,66 +1,164 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TalentPool
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+TalentPool est une plateforme de recrutement qui connecte les candidats avec les recruteurs. Cette application permet aux recruteurs de publier des offres d'emploi et aux candidats de postuler à ces offres.
 
-## About Laravel
+## Structure du projet
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Le projet est divisé en deux parties principales :
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. **Backend (API)** : Une API RESTful construite avec Laravel qui gère les données et l'authentification.
+2. **Frontend** : Une interface utilisateur construite avec Blade et JavaScript natif qui consomme l'API.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Fonctionnalités
 
-## Learning Laravel
+### Gestion des Annonces
+- Affichage de la liste des annonces avec filtres et recherche
+- Création, modification et suppression d'annonces (pour les recruteurs)
+- Vue détaillée des annonces
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Gestion des Candidatures
+- Envoi de candidatures avec CV et lettre de motivation
+- Liste des candidatures envoyées avec option de retrait
+- Espace recruteur pour voir et filtrer les candidatures
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Suivi des Candidatures
+- Affichage du statut de chaque candidature (en attente, acceptée, refusée)
+- Système de notifications visuelles
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Authentification et Sécurité
+- Inscription avec choix de rôle (candidat ou recruteur)
+- Connexion avec email et mot de passe
+- Réinitialisation du mot de passe
+- Authentification JWT pour l'API
 
-## Laravel Sponsors
+### Statistiques et Rapports
+- Tableau de bord pour les candidats avec statistiques sur leurs candidatures
+- Tableau de bord pour les recruteurs avec statistiques sur leurs annonces et candidatures reçues
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Installation
 
-### Premium Partners
+### Prérequis
+- PHP 8.1 ou supérieur
+- Composer
+- MySQL ou PostgreSQL
+- Node.js et NPM (pour la compilation des assets)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### Étapes d'installation
 
-## Contributing
+1. Cloner le dépôt :
+```bash
+git clone https://github.com/votre-utilisateur/talentpool.git
+cd talentpool
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+2. Installer les dépendances PHP :
+```bash
+composer install
+```
 
-## Code of Conduct
+3. Copier le fichier d'environnement :
+```bash
+cp .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. Configurer la base de données dans le fichier `.env`
 
-## Security Vulnerabilities
+5. Générer la clé d'application :
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+6. Générer la clé JWT :
+```bash
+php artisan jwt:secret
+```
 
-## License
+7. Exécuter les migrations et les seeders :
+```bash
+php artisan migrate --seed
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+8. Démarrer le serveur de développement :
+```bash
+php artisan serve
+```
+
+## Utilisation
+
+### Accès à l'application
+
+Accédez à l'application via l'URL : `http://localhost:8000`
+
+### Comptes de test
+
+- **Candidat** : candidat@example.com / password
+- **Recruteur** : recruteur@example.com / password
+- **Admin** : admin@example.com / password
+
+## Structure du Frontend
+
+Le frontend est organisé comme suit :
+
+- `resources/views/layouts/app.blade.php` : Template principal
+- `resources/views/welcome.blade.php` : Page d'accueil
+- `resources/views/auth/` : Pages d'authentification
+- `resources/views/annonces/` : Pages de gestion des annonces
+- `resources/views/dashboard/` : Pages des tableaux de bord
+
+## API Endpoints
+
+### Authentification
+- `POST /api/register` : Inscription
+- `POST /api/login` : Connexion
+- `POST /api/logout` : Déconnexion
+- `POST /api/password/reset` : Réinitialisation du mot de passe
+
+### Annonces
+- `GET /api/annonces` : Liste des annonces
+- `GET /api/annonces/{id}` : Détails d'une annonce
+- `POST /api/annonces` : Création d'une annonce (recruteur)
+- `PUT /api/annonces/{id}` : Modification d'une annonce (recruteur)
+- `DELETE /api/annonces/{id}` : Suppression d'une annonce (recruteur)
+
+### Candidatures
+- `GET /api/candidatures` : Liste des candidatures de l'utilisateur
+- `GET /api/candidatures/{id}` : Détails d'une candidature
+- `POST /api/candidatures` : Envoi d'une candidature (candidat)
+- `DELETE /api/candidatures/{id}` : Retrait d'une candidature (candidat)
+- `PUT /api/candidatures/{id}/status` : Mise à jour du statut d'une candidature (recruteur)
+
+## Technologies utilisées
+
+- **Backend** : Laravel, JWT Auth
+- **Frontend** : HTML, CSS, JavaScript, Bootstrap 5
+- **Base de données** : MySQL/PostgreSQL
+
+## Développement
+
+### Structure du code JavaScript
+
+Le code JavaScript est organisé de manière modulaire dans chaque vue Blade. Chaque page contient son propre script qui gère les fonctionnalités spécifiques à cette page.
+
+Les fonctionnalités communes (authentification, notifications) sont définies dans le template principal (`app.blade.php`).
+
+### Gestion de l'authentification
+
+L'authentification est gérée via JWT (JSON Web Tokens). Le token est stocké dans le localStorage du navigateur et est envoyé avec chaque requête API via l'en-tête Authorization.
+
+### Gestion des erreurs
+
+Les erreurs sont gérées de manière centralisée avec des messages d'erreur clairs pour l'utilisateur. Les erreurs d'API sont affichées dans des alertes Bootstrap.
+
+## Contribution
+
+Pour contribuer au projet, veuillez suivre les étapes suivantes :
+
+1. Forker le dépôt
+2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/ma-fonctionnalite`)
+3. Committer vos changements (`git commit -m 'feat: ajout de ma fonctionnalité'`)
+4. Pousser vers la branche (`git push origin feature/ma-fonctionnalite`)
+5. Ouvrir une Pull Request
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
