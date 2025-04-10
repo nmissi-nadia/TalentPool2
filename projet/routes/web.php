@@ -1,7 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Api\CandidatureController;
+use L5Swagger\Http\Controllers\SwaggerController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -60,3 +61,20 @@ Route::get('/dashboard/candidat', function () {
 Route::get('/dashboard/recruteur', function () {
     return view('dashboard.recruteur');
 });
+
+Route::get('/dashboard/admin', function () {
+    return view('dashboard.admin');
+});
+// Routes pour les candidatures
+// Routes pour les candidatures
+// Route::middleware(['auth'])->group(function () {
+    // Routes accessibles uniquement aux candidats
+    // Route::middleware(['checkrole:candidat'])->group(function () {
+        Route::get('/candidatures', [CandidatureController::class, 'index'])->name('candidatures.index');
+        Route::get('/candidatures/create', [CandidatureController::class, 'create'])->name('candidatures.create');
+        Route::post('/candidatures', [CandidatureController::class, 'store'])->name('candidatures.store');
+        Route::get('/candidatures/edit/{id}', [CandidatureController::class, 'edit'])->name('candidatures.edit');
+        Route::put('/candidatures/{id}', [CandidatureController::class, 'update'])->name('candidatures.update');
+        Route::delete('/candidatures/{id}', [CandidatureController::class, 'destroy'])->name('candidatures.destroy');
+    // });
+// });

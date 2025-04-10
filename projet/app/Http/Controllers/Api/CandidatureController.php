@@ -45,13 +45,38 @@ class CandidatureController extends Controller
         return response()->json($this->service->getAll(), 200);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/candidatures/{id}",
+     *     summary="Récupérer une candidature par son ID",
+     *     tags={"Candidatures"},
+     *     @OA\Parameter(name="id", in="path", required=true, description="ID de la candidature", @OA\Schema(type="integer")),
+     *     @OA\Response(response="200", description="Candidature récupérée"),
+     *     @OA\Response(response="404", description="Candidature non trouvée")
+     * )
+     */
+    public function show(int $id)
+    {
+        try {
+            $candidature = $this->service->get($id);
+            
+            if (!$candidature) {
+                return response()->json(['error' => 'Candidature non trouvée'], 404);
+            }
+            
+            return response()->json($candidature, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'annonce_id' => 'required|exists:annonces,id',
             'cv' => 'required|string',
             'lettre_motivation' => 'required|string',
-            'statut' => 'required|in:en_attente,acceptee,refusee',
+            'statut' => 'required|in:en attente,acceptée,refusée,en_attente,acceptee,refusee',
         ]);
 
         try {
@@ -76,7 +101,7 @@ class CandidatureController extends Controller
             'annonce_id' => 'required|exists:annonces,id',
             'cv' => 'required|string',
             'lettre_motivation' => 'required|string',
-            'statut' => 'required|in:en_attente,acceptee,refusee',
+            'statut' => 'required|in:en attente,acceptée,refusée,en_attente,acceptee,refusee',
         ]);
 
         try {
@@ -118,7 +143,7 @@ class CandidatureController extends Controller
     }
     /**
      * @OA\Get(
-     *     path="/api/candidatures/{annonceId}",
+     *     path="/api/candidatures/annonce/{annonceId}",
      *     summary="Récupérer les candidatures par annonce",
      *     tags={"Candidatures"},
      *     @OA\Parameter(name="annonceId", in="path", required=true, description="ID de l'annonce", @OA\Schema(type="integer")),
@@ -131,7 +156,7 @@ class CandidatureController extends Controller
     }
     /**
      * @OA\Get(
-     *     path="/api/candidatures/{candidatId}",
+     *     path="/api/candidatures/candidat/{candidatId}",
      *     summary="Récupérer les candidatures par candidat",
      *     tags={"Candidatures"},
      *     @OA\Parameter(name="candidatId", in="path", required=true, description="ID du candidat", @OA\Schema(type="integer")),
@@ -155,7 +180,7 @@ class CandidatureController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $validated = $request->validate([
-            'statut' => 'required|in:en_attente,acceptee,refusee',
+            'statut' => 'required|in:en attente,acceptée,refusée,en_attente,acceptee,refusee',
         ]);
 
         try {

@@ -38,7 +38,7 @@ class CandidatureTest extends TestCase
         $this->candidature = Candidature::factory()->create([
             'annonce_id' => $this->annonce->id,
             'candidat_id' => $this->candidat->id,
-            'statut' => 'en_attente'
+            'statut' => 'en attente'
         ]);
     }
 
@@ -75,7 +75,7 @@ class CandidatureTest extends TestCase
             'annonce_id' => $this->annonce->id,
             'cv' => 'CV.pdf',
             'lettre_motivation' => 'Motivation.txt',
-            'statut' => 'en_attente'
+            'statut' => 'en attente'
         ];
 
         $response = $this->withHeaders([
@@ -104,7 +104,7 @@ class CandidatureTest extends TestCase
             'annonce_id' => $this->annonce->id,
             'cv' => 'CV_updated.pdf',
             'lettre_motivation' => 'Motivation_updated.txt',
-            'statut' => 'acceptee'
+            'statut' => 'acceptée'
         ];
 
         $response = $this->withHeaders([
@@ -113,7 +113,7 @@ class CandidatureTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'statut' => 'acceptee'
+                'statut' => 'acceptée'
             ]);
     }
 
@@ -161,7 +161,7 @@ class CandidatureTest extends TestCase
         $token = JWTAuth::fromUser($this->recruteur);
         
         $updatedData = [
-            'statut' => 'acceptee'
+            'statut' => 'acceptée'
         ];
 
         $response = $this->withHeaders([
@@ -170,7 +170,7 @@ class CandidatureTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'statut' => 'acceptee'
+                'statut' => 'acceptée'
             ]);
     }
 

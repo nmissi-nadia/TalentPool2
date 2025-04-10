@@ -16,7 +16,7 @@ class CandidatureFactory extends Factory
             'candidat_id' => $this->faker->numberBetween(1, 10),
             'cv' => 'CV.pdf',
             'lettre_motivation' => 'Motivation.txt',
-            'statut' => $this->faker->randomElement(['en_attente', 'acceptée', 'refusée']),
+            'statut' => $this->faker->randomElement(['en attente', 'acceptée', 'refusée']),
         ];
     }
 }
