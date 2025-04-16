@@ -3,7 +3,7 @@
 @section('title', 'Annonces')
 
 @section('content')
-<div class="row">
+<div class="row bg-color-red">
     <div class="col-md-12 mb-4">
         <div class="card">
             <div class="card-body">
@@ -179,7 +179,7 @@
             const annonceCard = document.createElement('div');
             annonceCard.className = 'col-md-6 mb-4';
             annonceCard.innerHTML = `
-                <div class="card h-100">
+                <div class="card h-100 bg-blue">
                     <div class="card-body">
                         <h5 class="card-title">${annonce.titre}</h5>
                         <p class="card-text">${annonce.description.substring(0, 150)}${annonce.description.length > 150 ? '...' : ''}</p>

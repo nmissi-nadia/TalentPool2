@@ -6,91 +6,145 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ApiController extends Controller
 {
-    //Register API (POST ,formdata)
+    // Détermine si la requête est une requête API ou Web
+    protected function isApiRequest(Request $request)
+    {
+        return $request->expectsJson() || $request->is('api/*');
+    }
+
+    /**
+     * Inscription utilisateur
+     * Gère à la fois les requêtes API et web
+     */
     public function register(Request $request)
     {
-        // validation de données
+        // Validation de données
         $request->validate([
             "name" => "required",
             "email" => "required|email|unique:users",
             "password" => "required|min:8",
-            "role"=>"required|in:admin,candidat,recruteur"
+            "role" => "required|in:admin,candidat,recruteur"
         ]);
         
-        // create user
+        // Create user
         $user = User::create([
             "name" => $request->name,
             "email" => $request->email,
-            "password" => $request->password,
+            "password" => Hash::make($request->password),
             "role" => $request->role
         ]);
         
-        // return response
-        return response()->json([
-            "status" => true,
-            "message" => "inscription reussie",
-            "user" => $user
-        ]);
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json([
+                "status" => true,
+                "message" => "Inscription réussie",
+                "user" => $user
+            ]);
+        }
         
+        // Pour les requêtes web, connecter l'utilisateur et rediriger
+        Auth::login($user);
+        
+        // Rediriger selon le rôle
+        switch($user->role) {
+            case 'admin':
+                return redirect()->route('dashboard.admin');
+            case 'recruteur':
+                return redirect()->route('dashboard.recruteur');
+            case 'candidat':
+                return redirect()->route('dashboard.candidat');
+            default:
+                return redirect()->route('dashboard.index');
+        }
     }
-    //Login API (POST ,formdata)
+
+    /**
+     * Connexion utilisateur
+     * Gère à la fois les requêtes API et web
+     */
     public function login(Request $request)
     {
-        // data validation
+        // Validation des données
         $request->validate([
             "email" => "required|email",
             "password" => "required",
         ]);
 
-        // JWTAuth
-        $token = JWTAuth::attempt([
-            "email" => $request->email,
-            "password" => $request->password
-        ]);
+        $credentials = $request->only('email', 'password');
 
-        if(!empty($token)){
-            // Récupérer l'utilisateur connecté
-            $user = auth()->user();
-            
-            // Envoi de l'email de notification (si nécessaire)
-            try {
-                // Décommentez ces lignes si vous souhaitez envoyer un email de notification
-                // Mail::to($user->email)->send(new LoginNotification($user, request()->ip()));
-            } catch (\Exception $e) {
-                // En cas d'erreur d'envoi, on log l'erreur mais on ne bloque pas la connexion
-                // Log::error('Erreur lors de l\'envoi de l\'email de notification : ' . $e->getMessage());
+        // Pour les requêtes API, utiliser JWT
+        if ($this->isApiRequest($request)) {
+            $token = JWTAuth::attempt($credentials);
+
+            if (!empty($token)) {
+                return response()->json([
+                    "status" => true,
+                    "message" => "Connexion réussie",
+                    "token" => $token
+                ]);
             }
 
             return response()->json([
-                "status" => true,
-                "message" => "Connexion reussie",
-                "token" => $token
-            ]);
+                "status" => false,
+                "message" => "Identifiants invalides"
+            ], 401);
+        }
+        
+        // Pour les requêtes web, utiliser l'authentification de session
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            
+            // Rediriger selon le rôle
+            $user = Auth::user();
+            switch ($user->role) {
+                case 'admin':
+                    return redirect()->route('dashboard.admin');
+                case 'recruteur':
+                    return redirect()->route('dashboard.recruteur');
+                case 'candidat':
+                    return redirect()->route('dashboard.candidat');
+                default:
+                    return redirect()->route('dashboard.index');
+            }
         }
 
-        return response()->json([
-            "status" => false,
-            "message" => "Invalid details"
-        ]);
+        return back()->withErrors([
+            'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
+        ])->withInput($request->except('password'));
     }
-    // Profile API (GET)
-     public function profile()
-     {
-        $userdata = auth()->user();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Profile data",
-            "data" => $userdata
-        ]);
-     }
-     //Refresh Token API (GET)
-     public function refreshToken()
-     {
+    /**
+     * Profil utilisateur
+     * Gère à la fois les requêtes API et web
+     */
+    public function profile(Request $request)
+    {
+        $user = auth()->user();
+
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json([
+                "status" => true,
+                "message" => "Données du profil",
+                "data" => $user
+            ]);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('profile.index', compact('user'));
+    }
+
+    /**
+     * Rafraîchir le token JWT (API uniquement)
+     */
+    public function refreshToken()
+    {
         try {
             $newToken = JWTAuth::parseToken()->refresh();
             
@@ -105,39 +159,69 @@ class ApiController extends Controller
                 "message" => "Erreur lors du rafraîchissement du token"
             ], 401);
         }
-     }
-    //  Logout Api (GET)
-    public function logout()
-    {
-        auth()->logout();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Deconnexion reussie"
-        ]);
     }
-    // Reset Password API (POST)
+
+    /**
+     * Déconnexion
+     * Gère à la fois les requêtes API et web
+     */
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json([
+                "status" => true,
+                "message" => "Déconnexion réussie"
+            ]);
+        }
+        
+        // Pour les requêtes web, invalider la session et rediriger
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        
+        return redirect('/');
+    }
+
+    /**
+     * Réinitialisation de mot de passe
+     * Gère à la fois les requêtes API et web
+     */
     public function resetPassword(Request $request)
     {
         $request->validate([
-            "email" => "required|email"
+            "email" => "required|email",
+            "password" => "required|min:8"
         ]);
 
         $user = User::where("email", $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                "status" => false,
-                "message" => "Utilisateur non trouvé"
-            ]);
+            if ($this->isApiRequest($request)) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Utilisateur non trouvé"
+                ], 404);
+            }
+            
+            return back()->withErrors([
+                'email' => 'Nous ne trouvons pas d\'utilisateur avec cette adresse e-mail.',
+            ])->withInput();
         }
 
         $user->password = Hash::make($request->password);
         $user->save();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Mot de passe reinitialisé avec succès"
-        ]);
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json([
+                "status" => true,
+                "message" => "Mot de passe réinitialisé avec succès"
+            ]);
+        }
+        
+        // Pour les requêtes web, rediriger vers la page de connexion
+        return redirect()->route('login')->with('status', 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.');
     }
 }

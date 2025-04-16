@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Services\CandidatureService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-// Ajouter documentaion swagger 
+use Illuminate\Support\Facades\Auth;
+// Ajouter documentaion swagger
 
 /**
  * @OA\OpenApi(
@@ -27,9 +28,17 @@ class CandidatureController extends Controller
 {
     protected $service;
 
+    // Détermine si la requête est une requête API ou Web
+    protected function isApiRequest(Request $request)
+    {
+        return $request->expectsJson() || $request->is('api/*');
+    }
+
     public function __construct(CandidatureService $service)
     {
         $this->service = $service;
+        
+        // Les middlewares sont gérés dans les routes pour les requêtes web
     }
     /**
      * @OA\Get(
@@ -40,9 +49,17 @@ class CandidatureController extends Controller
      * )
      */
 
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->service->getAll(), 200);
+        $candidatures = $this->service->getAll();
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($candidatures, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('candidatures.index', compact('candidatures'));
     }
 
     /**
@@ -55,21 +72,47 @@ class CandidatureController extends Controller
      *     @OA\Response(response="404", description="Candidature non trouvée")
      * )
      */
-    public function show(int $id)
+    public function show(Request $request, int $id)
     {
         try {
             $candidature = $this->service->get($id);
             
             if (!$candidature) {
-                return response()->json(['error' => 'Candidature non trouvée'], 404);
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Candidature non trouvée'], 404);
+                }
+                return redirect()->route('candidatures.index')->with('error', 'Candidature non trouvée');
             }
             
-            return response()->json($candidature, 200);
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($candidature, 200);
+            }
+            
+            // Pour les requêtes web, renvoyer une vue
+            return view('candidatures.show', compact('candidature'));
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return redirect()->route('candidatures.index')->with('error', $e->getMessage());
         }
     }
 
+    /**
+     * Show the form for creating a new candidature
+     */
+    public function create(Request $request)
+    {
+        // Cette méthode n'est utilisée que pour les requêtes web
+        $annonceId = $request->get('annonce_id');
+        return view('candidatures.create', compact('annonceId'));
+    }
+
+    /**
+     * Store a newly created candidature
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -80,10 +123,25 @@ class CandidatureController extends Controller
         ]);
 
         try {
+            // Ajouter l'ID du candidat à partir de l'utilisateur connecté
+            $validated['candidat_id'] = Auth::id();
+            
             $candidature = $this->service->create($validated);
-            return response()->json($candidature, 201);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($candidature, 201);
+            }
+            
+            // Pour les requêtes web, rediriger vers la page de l'annonce associée
+            return redirect()->route('annonces.show', $validated['annonce_id'])
+                ->with('success', 'Candidature envoyée avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
     /**
@@ -95,6 +153,34 @@ class CandidatureController extends Controller
      *     @OA\Response(response="200", description="Candidature mise à jour")
      * )
      */
+    /**
+     * Show the form for editing the specified candidature
+     */
+    public function edit(Request $request, int $id)
+    {
+        // Cette méthode n'est utilisée que pour les requêtes web
+        try {
+            $candidature = $this->service->get($id);
+            
+            if (!$candidature) {
+                return redirect()->route('candidatures.index')->with('error', 'Candidature non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est bien le propriétaire de la candidature
+            if (Auth::id() != $candidature->candidat_id && Auth::user()->role != 'admin') {
+                return redirect()->route('candidatures.index')
+                    ->with('error', 'Vous n\'êtes pas autorisé à modifier cette candidature');
+            }
+            
+            return view('candidatures.edit', compact('candidature'));
+        } catch (\Exception $e) {
+            return redirect()->route('candidatures.index')->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update the specified candidature
+     */
     public function update(Request $request, int $id)
     {
         $validated = $request->validate([
@@ -105,10 +191,41 @@ class CandidatureController extends Controller
         ]);
 
         try {
+            // Vérifier que l'utilisateur est autorisé à modifier cette candidature
+            $candidature = $this->service->get($id);
+            
+            if (!$candidature) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Candidature non trouvée'], 404);
+                }
+                return redirect()->route('candidatures.index')->with('error', 'Candidature non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est le propriétaire de la candidature ou un admin
+            if (Auth::id() != $candidature->candidat_id && Auth::user()->role != 'admin') {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Non autorisé'], 403);
+                }
+                return redirect()->route('candidatures.index')
+                    ->with('error', 'Vous n\'êtes pas autorisé à modifier cette candidature');
+            }
+            
             $candidature = $this->service->update($id, $validated);
-            return response()->json($candidature, 200);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($candidature, 200);
+            }
+            
+            // Pour les requêtes web, rediriger vers la liste des candidatures
+            return redirect()->route('candidatures.index')
+                ->with('success', 'Candidature mise à jour avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
     /**
@@ -120,13 +237,44 @@ class CandidatureController extends Controller
      *     @OA\Response(response="200", description="Candidature supprimée")
      * )
      */
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         try {
-            $candidature = $this->service->delete($id);
-            return response()->json($candidature, 200);
+            // Vérifier que la candidature existe
+            $candidature = $this->service->get($id);
+            
+            if (!$candidature) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Candidature non trouvée'], 404);
+                }
+                return redirect()->route('candidatures.index')->with('error', 'Candidature non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est autorisé à supprimer cette candidature
+            if (Auth::user()->role != 'admin' && Auth::id() != $candidature->candidat_id) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Non autorisé'], 403);
+                }
+                return redirect()->route('candidatures.index')
+                    ->with('error', 'Vous n\'êtes pas autorisé à supprimer cette candidature');
+            }
+            
+            $this->service->delete($id);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json(['message' => 'Candidature supprimée avec succès'], 200);
+            }
+            
+            // Pour les requêtes web, rediriger vers la liste des candidatures
+            return redirect()->route('candidatures.index')
+                ->with('success', 'Candidature supprimée avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return redirect()->route('candidatures.index')->with('error', $e->getMessage());
         }
     }
     /**
@@ -137,9 +285,17 @@ class CandidatureController extends Controller
      *     @OA\Response(response="200", description="Statistiques des candidatures")
      * )
      */
-    public function getStats()
+    public function getStats(Request $request)
     {
-        return response()->json($this->service->getStats(), 200);
+        $stats = $this->service->getStats();
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($stats, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('candidatures.stats', compact('stats'));
     }
     /**
      * @OA\Get(
@@ -150,9 +306,17 @@ class CandidatureController extends Controller
      *     @OA\Response(response="200", description="Candidatures récupérées")
      * )
      */
-    public function getByAnnonce(int $annonceId)
+    public function getByAnnonce(Request $request, int $annonceId)
     {
-        return response()->json($this->service->getByAnnonce($annonceId), 200);
+        $candidatures = $this->service->getByAnnonce($annonceId);
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($candidatures, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('candidatures.by-annonce', compact('candidatures', 'annonceId'));
     }
     /**
      * @OA\Get(
@@ -163,9 +327,25 @@ class CandidatureController extends Controller
      *     @OA\Response(response="200", description="Candidatures récupérées")
      * )
      */
-    public function getByCandidat(int $candidatId)
+    public function getByCandidat(Request $request)
     {
-        return response()->json($this->service->getByCandidat($candidatId), 200);
+        // Si c'est une requête Web, on utilise l'ID de l'utilisateur connecté
+        $candidatId = Auth::id();
+        
+        // Pour les requêtes API, on peut permettre de spécifier un ID différent si c'est un admin
+        if ($this->isApiRequest($request) && $request->has('candidat_id') && Auth::user()->role === 'admin') {
+            $candidatId = $request->input('candidat_id');
+        }
+        
+        $candidatures = $this->service->getByCandidat($candidatId);
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($candidatures, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('candidatures.index', compact('candidatures'));
     }
 
     /**
@@ -184,10 +364,46 @@ class CandidatureController extends Controller
         ]);
 
         try {
+            // Vérifier que la candidature existe
+            $candidature = $this->service->get($id);
+            
+            if (!$candidature) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Candidature non trouvée'], 404);
+                }
+                return redirect()->back()->with('error', 'Candidature non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est autorisé à modifier le statut
+            // Un recruteur peut modifier le statut si l'annonce lui appartient
+            $isAuthorized = Auth::user()->role === 'admin' || 
+                           (Auth::user()->role === 'recruteur' && 
+                            $candidature->annonce && 
+                            $candidature->annonce->recruteur_id === Auth::id());
+            
+            if (!$isAuthorized) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Non autorisé'], 403);
+                }
+                return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier le statut de cette candidature');
+            }
+            
             $candidature = $this->service->update($id, $validated);
-            return response()->json($candidature, 200);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($candidature, 200);
+            }
+            
+            // Pour les requêtes web, rediriger vers la liste des candidatures pour cette annonce
+            return redirect()->route('candidatures.by-annonce', $candidature->annonce_id)
+                ->with('success', 'Statut de la candidature mis à jour avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Services\AnnonceService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use App\Interfaces\AnnonceRepositoryInterface;
 
 
@@ -44,9 +45,17 @@ class AnnonceController extends Controller
 {
     protected $service;
 
+    // Détermine si la requête est une requête API ou Web
+    protected function isApiRequest(Request $request)
+    {
+        return $request->expectsJson() || $request->is('api/*');
+    }
+
     public function __construct(AnnonceService $service)
     {
         $this->service = $service;
+        
+        // Les middlewares sont gérés dans les routes pour les requêtes web
     }
      /**
  * @OA\Get(
@@ -75,9 +84,17 @@ class AnnonceController extends Controller
  * )
  */
 
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->service->getAll(), 200);
+        $annonces = $this->service->getAll();
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($annonces, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('annonces.index', compact('annonces'));
     }
 
     /**
@@ -120,10 +137,25 @@ class AnnonceController extends Controller
         ]);
 
         try {
+            // Ajouter l'ID du recruteur à partir de l'utilisateur connecté
+            $validated['recruteur_id'] = Auth::id();
+            
             $annonce = $this->service->create($validated);
-            return response()->json($annonce, 201);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($annonce, 201);
+            }
+            
+            // Pour les requêtes web, rediriger vers la page de l'annonce
+            return redirect()->route('annonces.show', $annonce->id)
+                ->with('success', 'Annonce créée avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -172,10 +204,40 @@ class AnnonceController extends Controller
         ]);
 
         try {
+            // Vérifier que l'utilisateur est autorisé à modifier cette annonce
+            $annonce = $this->service->get($id);
+            
+            if (!$annonce) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Annonce non trouvée'], 404);
+                }
+                return redirect()->route('annonces.index')->with('error', 'Annonce non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est le propriétaire de l'annonce ou un admin
+            if (Auth::id() != $annonce->recruteur_id && Auth::user()->role != 'admin') {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Non autorisé'], 403);
+                }
+                return redirect()->route('annonces.index')->with('error', 'Vous n\'êtes pas autorisé à modifier cette annonce');
+            }
+            
             $annonce = $this->service->update($id, $validated);
-            return response()->json($annonce, 200);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($annonce, 200);
+            }
+            
+            // Pour les requêtes web, rediriger vers la page de l'annonce
+            return redirect()->route('annonces.show', $annonce->id)
+                ->with('success', 'Annonce mise à jour avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -205,13 +267,43 @@ class AnnonceController extends Controller
      *      )
      * )
      */
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         try {
-            $annonce = $this->service->delete($id);
-            return response()->json($annonce, 200);
+            // Vérifier que l'annonce existe
+            $annonce = $this->service->get($id);
+            
+            if (!$annonce) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Annonce non trouvée'], 404);
+                }
+                return redirect()->route('annonces.index')->with('error', 'Annonce non trouvée');
+            }
+            
+            // Vérifier que l'utilisateur est autorisé à supprimer cette annonce
+            if (Auth::user()->role != 'admin' && Auth::id() != $annonce->recruteur_id) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Non autorisé'], 403);
+                }
+                return redirect()->route('annonces.index')->with('error', 'Vous n\'êtes pas autorisé à supprimer cette annonce');
+            }
+            
+            $this->service->delete($id);
+            
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json(['message' => 'Annonce supprimée avec succès'], 200);
+            }
+            
+            // Pour les requêtes web, rediriger vers la liste des annonces
+            return redirect()->route('annonces.index')
+                ->with('success', 'Annonce supprimée avec succès');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return redirect()->route('annonces.index')->with('error', $e->getMessage());
         }
     }
 
@@ -234,19 +326,43 @@ class AnnonceController extends Controller
      *      )
      * )
      */
-    public function getStats()
+    public function getStats(Request $request)
     {
-        return response()->json($this->service->getStats(), 200);
+        $stats = $this->service->getStats();
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($stats, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('annonces.stats', compact('stats'));
     }
 
-    public function getByRecruteur(int $recruteurId)
+    public function getByRecruteur(Request $request, int $recruteurId)
     {
-        return response()->json($this->service->getByRecruteur($recruteurId), 200);
+        $annonces = $this->service->getByRecruteur($recruteurId);
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($annonces, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('annonces.index', compact('annonces'));
     }
 
-    public function getByStatut(string $statut)
+    public function getByStatut(Request $request, string $statut)
     {
-        return response()->json($this->service->getByStatut($statut), 200);
+        $annonces = $this->service->getByStatut($statut);
+        
+        // Pour les requêtes API, renvoyer une réponse JSON
+        if ($this->isApiRequest($request)) {
+            return response()->json($annonces, 200);
+        }
+        
+        // Pour les requêtes web, renvoyer une vue
+        return view('annonces.index', compact('annonces'));
     }
 
     /**
@@ -276,21 +392,34 @@ class AnnonceController extends Controller
      *      )
      * )
      */
-    public function show(int $id)
+    public function show(Request $request, int $id)
     {
         try {
             $annonce = $this->service->get($id);
             
             if (!$annonce) {
-                return response()->json(['error' => 'Annonce non trouvée'], 404);
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['error' => 'Annonce non trouvée'], 404);
+                }
+                return redirect()->route('annonces.index')->with('error', 'Annonce non trouvée');
             }
             
             // Charger la relation recruteur
             $annonce->load('recruteur');
             
-            return response()->json($annonce, 200);
+            // Pour les requêtes API, renvoyer une réponse JSON
+            if ($this->isApiRequest($request)) {
+                return response()->json($annonce, 200);
+            }
+            
+            // Pour les requêtes web, renvoyer une vue
+            return view('annonces.show', compact('annonce'));
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            if ($this->isApiRequest($request)) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+            return redirect()->route('annonces.index')->with('error', $e->getMessage());
         }
     }
 
